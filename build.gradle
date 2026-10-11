@@ -1,0 +1,47 @@
+plugins {
+    id 'fabric-loom' version '1.7.1'
+    id 'maven-publish'
+}
+
+version = '1.0.0'
+group = 'com.example'
+
+base {
+    archivesName = 'dinoworld'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.property('minecraft_version')}"
+    mappings "net.fabricmc:yarn:${project.property('minecraft_version')}+build.3:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.property('loader_version')}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:0.115.0+${project.property('minecraft_version')}"
+}
+
+java {
+    withSourcesJar()
+
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = 'UTF-8'
+    it.options.release = 17
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand version: project.version
+    }
+}
+
+jar {
+    from('LICENSE') {
+        rename { 'LICENSE-dinoworld' }
+    }
+}
