@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "dinoworld",
+  "version": "${version}",
+  "name": "DinoWorld",
+  "description": "A tiny demo Minecraft mod that renders DinoWorld in the HUD.",
+  "authors": [
+    "Copilot"
+  ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.example.dinoworld.DinoWorldClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
