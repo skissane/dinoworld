@@ -1,23 +1,22 @@
 package com.example.dinoworld;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 
 public class DinoWorldClient implements ClientModInitializer {
+    private static final Identifier HUD_TEXT_ID = Identifier.fromNamespaceAndPath("dinoworld", "hud_text");
+
     @Override
     public void onInitializeClient() {
-        HudRenderCallback.EVENT.register(this::renderHudText);
+        HudElementRegistry.addLast(HUD_TEXT_ID, this::renderHudText);
     }
 
-    private void renderHudText(DrawContext drawContext, RenderTickCounter tickCounter) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.textRenderer == null) {
-            return;
-        }
-
-        drawContext.drawText(client.textRenderer, "DinoWorld", 10, 10, 0xFFFFFFFF, true);
+    private void renderHudText(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
+        Minecraft client = Minecraft.getInstance();
+        graphics.text(client.font, "DinoWorld", 10, 10, 0xFFFFFFFF, true);
     }
 }
