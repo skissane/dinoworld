@@ -3,7 +3,17 @@ plugins {
     id 'maven-publish'
 }
 
-version = '1.0.0'
+// The version comes from the latest v* git tag: tagging v1.2.0 builds 1.2.0, and
+// later commits build e.g. 1.2.0-3-gabc1234 (3 commits past the tag), with -dirty
+// added for uncommitted changes. Outside a git checkout or without a v* tag, it's
+// 0.0.0-SNAPSHOT (git itself must be installed).
+def gitDescribe = providers.exec {
+    commandLine 'git', 'describe', '--tags', '--match', 'v*', '--dirty'
+    ignoreExitValue = true
+}
+version = gitDescribe.result.get().exitValue == 0
+        ? gitDescribe.standardOutput.asText.get().trim().substring(1)
+        : '0.0.0-SNAPSHOT'
 group = 'com.example'
 
 base {
