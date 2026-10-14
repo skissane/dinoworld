@@ -48,8 +48,8 @@ jobs:
             exit 1
           fi
 
-      - name: Build mod and modpack
-        run: ./gradlew build modpack
+      - name: Build mod, modpack and packwiz files
+        run: ./gradlew build modpack packwizRelease
 
       - name: Upload mod jar
         uses: actions/upload-artifact@v4
@@ -67,7 +67,17 @@ jobs:
           path: build/distributions/dinoworld-*.mrpack
           if-no-files-found: error
 
-  # On a v* tag, attach the jar and mrpack the build job produced to a new
+      # pack.toml, index.toml and the jars they list. This includes a copy of the
+      # mod jar identical to dinoworld-jar's, so merging them in the release job
+      # is harmless.
+      - name: Upload packwiz files
+        uses: actions/upload-artifact@v4
+        with:
+          name: dinoworld-packwiz
+          path: build/packwiz-release/
+          if-no-files-found: error
+
+  # On a v* tag, attach the jar, mrpack and packwiz files the build job produced to a new
   # GitHub Release. Only this job gets write access, and it runs no repo code.
   release:
     needs: build

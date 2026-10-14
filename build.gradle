@@ -106,3 +106,59 @@ tasks.register('modpack', Zip) {
         from configurations.modpackMods
     }
 }
+
+// Files for a GitHub Release that packwiz-installer can update from, using
+// https://github.com/<owner>/<repo>/releases/latest/download/pack.toml.
+// Release assets are a flat list, so index.toml lists the jars directly
+// (no .pw.toml metafiles) and uses `alias` to install them into mods/.
+tasks.register('packwizRelease') {
+    group = 'distribution'
+    description = 'Builds pack.toml, index.toml and jars for a packwiz-updatable GitHub Release.'
+    def modJar = tasks.named('jar').flatMap { it.archiveFile }
+    def bundledMods = configurations.modpackMods
+    def packVersion = project.version.toString()
+    def minecraftVersion = project.property('minecraft_version').toString()
+    def loaderVersion = project.property('loader_version').toString()
+    def outDir = layout.buildDirectory.dir('packwiz-release')
+    inputs.files modJar, bundledMods
+    inputs.property 'packVersion', packVersion
+    inputs.property 'minecraftVersion', minecraftVersion
+    inputs.property 'loaderVersion', loaderVersion
+    outputs.dir outDir
+    doLast {
+        def dir = outDir.get().asFile
+        dir.deleteDir()
+        dir.mkdirs()
+        def sha256 = { File f -> java.security.MessageDigest.getInstance('SHA-256').digest(f.bytes).encodeHex().toString() }
+
+        def index = new StringBuilder('hash-format = "sha256"\n')
+        def names = [] as Set
+        ([modJar.get().asFile] + bundledMods.files.toList()).each { File jar ->
+            // GitHub rewrites unusual characters in asset names (e.g. the '+' in Fabric API's version)
+            def name = jar.name.replaceAll(/[^A-Za-z0-9._-]/, '-')
+            if (!names.add(name)) {
+                throw new GradleException("Two jars would both be released as ${name}")
+            }
+            def copy = new File(dir, name)
+            copy.bytes = jar.bytes
+            index << "\n[[files]]\nfile = \"${name}\"\nalias = \"mods/${name}\"\nhash = \"${sha256(copy)}\"\n"
+        }
+        def indexFile = new File(dir, 'index.toml')
+        indexFile.text = index.toString()
+
+        new File(dir, 'pack.toml').text = """\
+            name = "DinoWorld"
+            version = "${packVersion}"
+            pack-format = "packwiz:1.1.0"
+
+            [index]
+            file = "index.toml"
+            hash-format = "sha256"
+            hash = "${sha256(indexFile)}"
+
+            [versions]
+            minecraft = "${minecraftVersion}"
+            fabric = "${loaderVersion}"
+            """.stripIndent()
+    }
+}
