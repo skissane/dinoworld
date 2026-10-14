@@ -52,15 +52,17 @@ git tag v1.2.0 && git push origin v1.2.0
 
 or run the **Tag Release** workflow (Actions tab → Run workflow, or `gh workflow run tag-release.yml -f bump=patch`), which picks `patch`, `minor` or `major` and tags the tip of `main` with the next version. It needs a repository secret `RELEASE_TOKEN` (a fine-grained PAT or GitHub App token with `contents: write`), because a tag pushed with the default `GITHUB_TOKEN` doesn't trigger the CI release.
 
-One-time setup in Prism Launcher:
+One-time setup in Prism Launcher: **Add Instance → Import from zip**, paste
 
-1. Create an instance for Minecraft 26.3 with Fabric Loader.
-2. Put [`packwiz-installer-bootstrap.jar`](https://github.com/packwiz/packwiz-installer-bootstrap/releases) in the instance's `.minecraft` folder.
-3. Go to **Edit Instance → Settings → Custom commands** and set the pre-launch command to:
+```
+https://github.com/skissane/dinoworld/releases/latest/download/dinoworld-prism.zip
+```
 
-   ```
-   "$INST_JAVA" -jar packwiz-installer-bootstrap.jar https://github.com/skissane/dinoworld/releases/latest/download/pack.toml
-   ```
+and click OK. That zip (built by `./gradlew prismInstance`) is a Minecraft 26.3 + Fabric Loader instance with `packwiz-installer-bootstrap.jar` in its `minecraft` folder and this pre-launch command already set:
+
+```
+"$INST_JAVA" -jar packwiz-installer-bootstrap.jar https://github.com/skissane/dinoworld/releases/latest/download/pack.toml
+```
 
 Each launch then installs whatever the latest release contains, and removes jars from older versions.
 
