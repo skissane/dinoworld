@@ -1,0 +1,103 @@
+name: Tag Release
+
+# Run from the Actions tab ("Run workflow") or with
+#   gh workflow run tag-release.yml -f bump=patch
+# Tags the tip of the default branch, which makes ci.yml build and publish the
+# release.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version component to increment
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+concurrency:
+  group: tag-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read # to check ci.yml passed on the commit being tagged
+
+    steps:
+      # The workflow always tags the default branch, so refuse a run started
+      # from another branch rather than silently ignoring the selector.
+      - name: Check run is on the default branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/$DEFAULT_BRANCH" ]; then
+            echo "::error::Run this from $DEFAULT_BRANCH, not $GITHUB_REF; it always tags the tip of $DEFAULT_BRANCH."
+            exit 1
+          fi
+
+      # Checked before checkout, which would otherwise fail on the empty token
+      # with a less helpful error.
+      - name: Check RELEASE_TOKEN is set
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "::error::Secret RELEASE_TOKEN is not set; tags pushed with GITHUB_TOKEN would not trigger the CI release."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          # A tag pushed with the default GITHUB_TOKEN doesn't trigger other
+          # workflows, so ci.yml would never see it. Use a PAT or GitHub App
+          # token with contents: write instead.
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      # Don't tag a commit whose CI is still running or failed.
+      - name: Check CI passed on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(git rev-parse HEAD)
+          result=$(gh run list --workflow ci.yml --commit "$sha" --event push --limit 1 \
+            --json status,conclusion --jq '.[0] | "\(.status) \(.conclusion)"')
+          if [ "$result" != "completed success" ]; then
+            echo "::error::ci.yml has not passed on $(git rev-parse --short HEAD) (got: ${result:-no run}). Wait for it to finish, or fix it, then retry."
+            exit 1
+          fi
+
+      - name: Create and push tag
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          existing=$(git tag --points-at HEAD --list 'v*' | head -n1)
+          if [ -n "$existing" ]; then
+            echo "::error::$(git rev-parse --short HEAD) is already tagged $existing"
+            exit 1
+          fi
+
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 || true)
+          latest=${latest:-v0.0.0}
+          IFS=. read -r major minor patch <<< "${latest#v}"
+
+          case "$BUMP" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+            *) echo "::error::Unknown bump '$BUMP'"; exit 1 ;;
+          esac
+          next="v$major.$minor.$patch"
+
+          echo "Tagging $(git rev-parse --short HEAD) as $next (previous: $latest)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$next" -m "Release $next"
+          git push origin "$next"
+          echo "Tagged $next" >> "$GITHUB_STEP_SUMMARY"
