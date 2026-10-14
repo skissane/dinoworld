@@ -26,8 +26,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read # to check ci.yml passed on the commit being tagged
 
     steps:
+      # The workflow always tags the default branch, so refuse a run started
+      # from another branch rather than silently ignoring the selector.
+      - name: Check run is on the default branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/$DEFAULT_BRANCH" ]; then
+            echo "::error::Run this from $DEFAULT_BRANCH, not $GITHUB_REF; it always tags the tip of $DEFAULT_BRANCH."
+            exit 1
+          fi
+
       # Checked before checkout, which would otherwise fail on the empty token
       # with a less helpful error.
       - name: Check RELEASE_TOKEN is set
@@ -47,6 +59,19 @@ jobs:
           # workflows, so ci.yml would never see it. Use a PAT or GitHub App
           # token with contents: write instead.
           token: ${{ secrets.RELEASE_TOKEN }}
+
+      # Don't tag a commit whose CI is still running or failed.
+      - name: Check CI passed on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(git rev-parse HEAD)
+          result=$(gh run list --workflow ci.yml --commit "$sha" --event push --limit 1 \
+            --json status,conclusion --jq '.[0] | "\(.status) \(.conclusion)"')
+          if [ "$result" != "completed success" ]; then
+            echo "::error::ci.yml has not passed on $(git rev-parse --short HEAD) (got: ${result:-no run}). Wait for it to finish, or fix it, then retry."
+            exit 1
+          fi
 
       - name: Create and push tag
         env:
