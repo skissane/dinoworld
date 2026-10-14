@@ -50,6 +50,8 @@ This writes `pack.toml`, `index.toml` and the DinoWorld and Fabric API jars to `
 git tag v1.2.0 && git push origin v1.2.0
 ```
 
+or run the **Tag Release** workflow (Actions tab → Run workflow, or `gh workflow run tag-release.yml -f bump=patch`), which picks `patch`, `minor` or `major` and tags the tip of `main` with the next version. It needs a repository secret `RELEASE_TOKEN` (a fine-grained PAT or GitHub App token with `contents: write`), because a tag pushed with the default `GITHUB_TOKEN` doesn't trigger the CI release.
+
 One-time setup in Prism Launcher:
 
 1. Create an instance for Minecraft 26.3 with Fabric Loader.
