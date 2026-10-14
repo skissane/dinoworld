@@ -20,7 +20,11 @@ jobs:
       contents: read
 
     steps:
+      # Full history and tags, since build.gradle takes the version from
+      # git describe.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -32,17 +36,6 @@ jobs:
       # validates gradle-wrapper.jar against the known Gradle checksums.
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      # A v* tag publishes a release, so make sure the tag names the version
-      # actually built (version is set in build.gradle).
-      - name: Check tag matches project version
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          version=$(./gradlew -q properties --property version | sed -n 's/^version: //p')
-          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match project version $version"
-            exit 1
-          fi
 
       - name: Build mod and modpack
         run: ./gradlew build modpack
