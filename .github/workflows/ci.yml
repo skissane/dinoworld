@@ -7,6 +7,12 @@ on:
   pull_request:
     branches: ["**"]
 
+# A newer push to a PR supersedes its older run; runs for main and tags are
+# never cancelled, so a release can't be cut off halfway.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
