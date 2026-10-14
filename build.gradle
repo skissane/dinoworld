@@ -10,10 +10,12 @@ base {
     archivesName = 'dinoworld'
 }
 
+def fabricApi = "net.fabricmc.fabric-api:fabric-api:${project.property('fabric_api_version')}"
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.property('minecraft_version')}"
     implementation "net.fabricmc:fabric-loader:${project.property('loader_version')}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${project.property('fabric_api_version')}"
+    implementation fabricApi
 }
 
 java {
@@ -45,6 +47,8 @@ jar {
 // Modrinth-format modpack (.mrpack) for installing the mod on another machine,
 // e.g. via Prism Launcher's "Import from zip" (which also accepts a URL).
 // Both jars go in overrides/ so the pack is self-contained and needs no CDN hashes.
+// Only the mod jar (with its include'd jars nested inside) and modpackMods are packed:
+// a new runtime mod added via implementation must also be added to modpackMods.
 configurations {
     modpackMods {
         canBeConsumed = false
@@ -53,7 +57,7 @@ configurations {
 }
 
 dependencies {
-    modpackMods "net.fabricmc.fabric-api:fabric-api:${project.property('fabric_api_version')}"
+    modpackMods fabricApi
 }
 
 def generateModpackIndex = tasks.register('generateModpackIndex') {
