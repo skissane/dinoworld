@@ -132,9 +132,13 @@ tasks.register('packwizRelease') {
         def sha256 = { File f -> java.security.MessageDigest.getInstance('SHA-256').digest(f.bytes).encodeHex().toString() }
 
         def index = new StringBuilder('hash-format = "sha256"\n')
+        def names = [] as Set
         ([modJar.get().asFile] + bundledMods.files.toList()).each { File jar ->
             // GitHub rewrites unusual characters in asset names (e.g. the '+' in Fabric API's version)
             def name = jar.name.replaceAll(/[^A-Za-z0-9._-]/, '-')
+            if (!names.add(name)) {
+                throw new GradleException("Two jars would both be released as ${name}")
+            }
             def copy = new File(dir, name)
             copy.bytes = jar.bytes
             index << "\n[[files]]\nfile = \"${name}\"\nalias = \"mods/${name}\"\nhash = \"${sha256(copy)}\"\n"

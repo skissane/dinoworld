@@ -61,3 +61,5 @@ One-time setup in Prism Launcher:
    ```
 
 Each launch then installs whatever the latest release contains, and removes jars from older versions.
+
+The installer also updates the instance's Minecraft and Fabric Loader versions to match `pack.toml`, so you don't need to change the instance when you bump `minecraft_version` or `loader_version`. `latest` skips drafts and pre-releases, so a release marked as a pre-release won't reach the instance.
