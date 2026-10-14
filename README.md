@@ -29,3 +29,11 @@ This launches a Fabric client with the mod enabled.
 ## Install
 
 Copy the built JAR from `build/libs/` into your Minecraft `mods` directory and launch the Fabric client.
+
+## Modpack
+
+```bash
+./gradlew modpack
+```
+
+This builds `build/distributions/dinoworld-<version>.mrpack`, a Modrinth-format modpack containing DinoWorld and Fabric API. In Prism Launcher, use **Add Instance → Import from zip** and pick the file, or paste a direct download URL to it.

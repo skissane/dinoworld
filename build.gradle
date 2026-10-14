@@ -41,3 +41,54 @@ jar {
         rename { 'LICENSE-dinoworld' }
     }
 }
+
+// Modrinth-format modpack (.mrpack) for installing the mod on another machine,
+// e.g. via Prism Launcher's "Import from zip" (which also accepts a URL).
+// Both jars go in overrides/ so the pack is self-contained and needs no CDN hashes.
+configurations {
+    modpackMods {
+        canBeConsumed = false
+        transitive = false
+    }
+}
+
+dependencies {
+    modpackMods "net.fabricmc.fabric-api:fabric-api:${project.property('fabric_api_version')}"
+}
+
+def generateModpackIndex = tasks.register('generateModpackIndex') {
+    def packVersion = project.version.toString()
+    def minecraftVersion = project.property('minecraft_version').toString()
+    def loaderVersion = project.property('loader_version').toString()
+    def indexFile = layout.buildDirectory.file('modpack/modrinth.index.json')
+    inputs.property 'packVersion', packVersion
+    inputs.property 'minecraftVersion', minecraftVersion
+    inputs.property 'loaderVersion', loaderVersion
+    outputs.file indexFile
+    doLast {
+        def index = [
+            formatVersion: 1,
+            game         : 'minecraft',
+            versionId    : packVersion,
+            name         : 'DinoWorld',
+            files        : [],
+            dependencies : [
+                minecraft      : minecraftVersion,
+                'fabric-loader': loaderVersion,
+            ],
+        ]
+        indexFile.get().asFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(index))
+    }
+}
+
+tasks.register('modpack', Zip) {
+    group = 'distribution'
+    description = 'Builds a .mrpack containing DinoWorld and Fabric API.'
+    archiveFileName = "dinoworld-${project.version}.mrpack"
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    from generateModpackIndex
+    into('overrides/mods') {
+        from tasks.named('jar')
+        from configurations.modpackMods
+    }
+}
