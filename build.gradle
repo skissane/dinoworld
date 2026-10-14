@@ -5,7 +5,8 @@ plugins {
 
 // The version comes from the latest v* git tag: tagging v1.2.0 builds 1.2.0, and
 // later commits build e.g. 1.2.0-3-gabc1234 (3 commits past the tag), with -dirty
-// added for uncommitted changes. Without git or a v* tag, it's 0.0.0-SNAPSHOT.
+// added for uncommitted changes. Outside a git checkout or without a v* tag, it's
+// 0.0.0-SNAPSHOT (git itself must be installed).
 def gitDescribe = providers.exec {
     commandLine 'git', 'describe', '--tags', '--match', 'v*', '--dirty'
     ignoreExitValue = true
