@@ -3,13 +3,16 @@
   "id": "dinoworld",
   "version": "${version}",
   "name": "DinoWorld",
-  "description": "A tiny demo Minecraft mod that renders DinoWorld in the HUD.",
+  "description": "A small Minecraft mod that adds dinosaurs, starting with the Triceratops.",
   "authors": [
     "Copilot"
   ],
   "license": "MIT",
-  "environment": "client",
+  "environment": "*",
   "entrypoints": {
+    "main": [
+      "com.example.dinoworld.DinoWorld"
+    ],
     "client": [
       "com.example.dinoworld.DinoWorldClient"
     ]
