@@ -21,8 +21,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Builds an entity model from a Bedrock geometry file ({@code assets/dinoworld/geo/<name>.geo.json}), the format
@@ -65,19 +67,18 @@ public final class GeoModelLoader {
         MeshDefinition mesh = new MeshDefinition();
         Map<String, PartDefinition> parts = new HashMap<>();
         Map<String, float[]> pivots = new HashMap<>();
+        Set<String> partNames = new HashSet<>();
         for (JsonElement element : geometry.getAsJsonArray("bones")) {
             JsonObject bone = element.getAsJsonObject();
             String name = bone.get("name").getAsString();
-            if (parts.containsKey(name)) {
-                throw new JsonParseException("duplicate bone " + name);
-            }
+            addPartName(partNames, name);
             String parentName = bone.has("parent") ? bone.get("parent").getAsString() : null;
             PartDefinition parent = parentName == null ? mesh.getRoot() : parts.get(parentName);
             if (parent == null) {
                 throw new JsonParseException("bone " + name + " has parent " + parentName + ", which isn't listed before it");
             }
             float[] parentPivot = parentName == null ? null : pivots.get(parentName);
-            float[] pivot = floats(bone, "pivot");
+            float[] pivot = floats(bone, "pivot", 3, false);
             boolean mirror = bone.has("mirror") && bone.get("mirror").getAsBoolean();
             float inflate = bone.has("inflate") ? bone.get("inflate").getAsFloat() : 0.0f;
 
@@ -86,21 +87,23 @@ public final class GeoModelLoader {
             if (bone.has("cubes")) {
                 for (JsonElement cubeElement : bone.getAsJsonArray("cubes")) {
                     JsonObject cube = cubeElement.getAsJsonObject();
-                    if (isZero(floats(cube, "rotation"))) {
+                    if (isZero(floats(cube, "rotation", 3, false))) {
                         addCube(cubes, cube, pivot, mirror, inflate);
                     } else {
                         rotatedCubes.add(cube);
                     }
                 }
             }
-            PartDefinition part = parent.addOrReplaceChild(name, cubes, pose(pivot, parentPivot, floats(bone, "rotation")));
+            PartDefinition part = parent.addOrReplaceChild(name, cubes, pose(pivot, parentPivot, floats(bone, "rotation", 3, false)));
 
             for (int i = 0; i < rotatedCubes.size(); i++) {
                 JsonObject cube = rotatedCubes.get(i);
-                float[] cubePivot = floats(cube, "pivot");
-                part.addOrReplaceChild(name + "_r" + (i + 1),
+                float[] cubePivot = floats(cube, "pivot", 3, false);
+                String cubePartName = name + "_r" + (i + 1);
+                addPartName(partNames, cubePartName);
+                part.addOrReplaceChild(cubePartName,
                         addCube(CubeListBuilder.create(), cube, cubePivot, mirror, inflate),
-                        pose(cubePivot, pivot, floats(cube, "rotation")));
+                        pose(cubePivot, pivot, floats(cube, "rotation", 3, false)));
             }
             parts.put(name, part);
             pivots.put(name, pivot);
@@ -121,9 +124,9 @@ public final class GeoModelLoader {
         if (cube.has("uv") && !cube.get("uv").isJsonArray()) {
             throw new JsonParseException("per-face UV isn't supported; switch the Blockbench project to box UV");
         }
-        float[] origin = floats(cube, "origin");
-        float[] size = floats(cube, "size");
-        float[] uv = floats(cube, "uv");
+        float[] origin = floats(cube, "origin", 3, true);
+        float[] size = floats(cube, "size", 3, true);
+        float[] uv = floats(cube, "uv", 2, true);
         boolean mirror = cube.has("mirror") ? cube.get("mirror").getAsBoolean() : boneMirror;
         float inflate = cube.has("inflate") ? cube.get("inflate").getAsFloat() : boneInflate;
         return builder.texOffs((int) uv[0], (int) uv[1]).mirror(mirror).addBox(
@@ -131,14 +134,28 @@ public final class GeoModelLoader {
                 size[0], size[1], size[2], new CubeDeformation(inflate));
     }
 
-    /** Reads a numeric array, defaulting missing entries to 0. */
-    private static float[] floats(JsonObject object, String key) {
-        float[] values = new float[3];
-        if (object.has(key)) {
-            JsonArray array = object.getAsJsonArray(key);
-            for (int i = 0; i < array.size() && i < values.length; i++) {
-                values[i] = array.get(i).getAsFloat();
+    /** Part names must be unique across the model, including the parts made for rotated cubes. */
+    private static void addPartName(Set<String> partNames, String name) {
+        if (!partNames.add(name)) {
+            throw new JsonParseException("duplicate part name " + name);
+        }
+    }
+
+    /** Reads a numeric array of exactly {@code length} entries; an optional one that's missing is all zeros. */
+    private static float[] floats(JsonObject object, String key, int length, boolean required) {
+        float[] values = new float[length];
+        if (!object.has(key)) {
+            if (required) {
+                throw new JsonParseException("missing " + key + " in " + object);
             }
+            return values;
+        }
+        JsonArray array = object.getAsJsonArray(key);
+        if (array.size() != length) {
+            throw new JsonParseException(key + " needs " + length + " numbers in " + object);
+        }
+        for (int i = 0; i < length; i++) {
+            values[i] = array.get(i).getAsFloat();
         }
         return values;
     }
