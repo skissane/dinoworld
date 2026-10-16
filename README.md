@@ -1,6 +1,12 @@
 # DinoWorld
 
-DinoWorld is a minimal Fabric mod demo for Minecraft. The mod builds as a client-only mod and renders the text `DinoWorld` in the HUD.
+DinoWorld is a small Fabric mod for Minecraft. It adds a Triceratops mob and shows the mod version in the HUD.
+
+## Triceratops
+
+Triceratops spawn in small herds in plains and savanna biomes. They wander, follow players holding wheat, and can be bred with wheat. They are peaceful until hurt, then they charge whatever attacked them. A Triceratops Spawn Egg is in the Spawn Eggs creative tab, or use `/summon dinoworld:triceratops`.
+
+The mod adds a mob, so a server must have it installed too, not just the clients.
 
 ## Requirements
 
@@ -28,7 +34,7 @@ This launches a Fabric client with the mod enabled.
 
 ## Install
 
-Copy the built JAR from `build/libs/` into your Minecraft `mods` directory and launch the Fabric client.
+Copy the built JAR from `build/libs/` into your Minecraft `mods` directory (and the server's, for multiplayer) and launch the Fabric client.
 
 ## Modpack
 
