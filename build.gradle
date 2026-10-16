@@ -26,6 +26,9 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.property('minecraft_version')}"
     implementation "net.fabricmc:fabric-loader:${project.property('loader_version')}"
     implementation fabricApi
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 java {
@@ -33,6 +36,14 @@ java {
 
     sourceCompatibility = JavaVersion.VERSION_25
     targetCompatibility = JavaVersion.VERSION_25
+}
+
+// Minecraft's logging config writes logs/ into the working directory, so keep that out of the project root.
+def testWorkingDir = layout.buildDirectory.dir('test-run')
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    workingDir = testWorkingDir
+    doFirst { testWorkingDir.get().asFile.mkdirs() }
 }
 
 tasks.withType(JavaCompile).configureEach {

@@ -8,6 +8,14 @@ Triceratops spawn in small herds in plains and savanna biomes. They wander, foll
 
 The mod adds a mob, so a server must have it installed too, not just the clients.
 
+## Editing models in Blockbench
+
+Mob models are Bedrock geometry files in `src/main/resources/assets/dinoworld/geo/`, loaded by `GeoModelLoader`. To edit one, open the `.geo.json` file in Blockbench (it opens as a Bedrock Entity project), load the matching texture from `src/main/resources/assets/dinoworld/textures/entity/` into it, make your changes, and save back to the same file. Rebuild or rerun the game to see the result.
+
+- Keep the bone names that the model class animates (the `root.getChild(...)` names in the `TriceratopsModel` constructor), or the game crashes when it builds the model. `./gradlew build` runs a test that catches this.
+- Use box UV (the project default); per-face UV isn't supported.
+- Bone animations are still Java code in the model class's `setupAnim`; Blockbench animations aren't used.
+
 ## Requirements
 
 - Java 25+
